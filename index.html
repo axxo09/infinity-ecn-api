@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinity ECN — Market Watch</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Roboto+Condensed:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0c0e0d;font-family:'Roboto Condensed',sans-serif;color:#c5d3e0;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── TITLEBAR ── */
+.titlebar{
+  background:#111614;border-bottom:2px solid #1c2a1e;
+  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;user-select:none;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.brand{font-size:14px;font-weight:700;letter-spacing:2px;color:#2ecc71;text-transform:uppercase}
+.brand-sub{font-size:8px;color:#2a4a2c;letter-spacing:1.5px;text-transform:uppercase;font-family:'Share Tech Mono',monospace}
+.tb-right{display:flex;align-items:center;gap:14px}
+.sess{display:flex;align-items:center;gap:14px}
+.sess-item{text-align:center}
+.sess-name{font-size:7px;font-family:'Share Tech Mono',monospace;color:#2a4a2c;letter-spacing:1px}
+.sess-dot{font-size:9px;font-family:'Share Tech Mono',monospace;font-weight:700;margin-top:1px}
+.sess-dot.open{color:#2ecc71}
+.sess-dot.closed{color:#1a2e1c}
+.live-pill{background:rgba(46,204,113,.07);border:1px solid #1e4a22;color:#2ecc71;font-size:9px;font-family:'Share Tech Mono',monospace;padding:3px 10px;border-radius:3px;display:flex;align-items:center;gap:5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:blink 1.2s infinite}
+.clock{font-family:'Share Tech Mono',monospace;font-size:11px;color:#2a4a2c}
+@keyframes blink{50%{opacity:.15}}
+
+/* ── MAIN SPLIT ── */
+.main{flex:1;display:flex;overflow:hidden}
+
+/* ── LEFT: CHART ── */
+.left-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:2px solid #1c2a1e;min-width:0}
+.chart-header{
+  background:#0e1410;border-bottom:1px solid #1c2a1e;
+  padding:6px 14px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.chart-sym{font-size:15px;font-weight:700;color:#2ecc71;letter-spacing:.5px}
+.chart-price{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;color:#fff}
+.chart-chg{font-family:'Share Tech Mono',monospace;font-size:11px;margin-left:8px}
+.chart-wrap{flex:1;overflow:hidden}
+
+/* ── RIGHT: PRICES ── */
+.right-panel{width:260px;flex-shrink:0;display:flex;flex-direction:column;background:#0a0d0b}
+.right-header{
+  background:#0e1410;border-bottom:2px solid #1c2a1e;
+  padding:7px 12px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.right-title{font-size:10px;font-family:'Share Tech Mono',monospace;color:#2ecc71;letter-spacing:2px;text-transform:uppercase}
+.update-time{font-size:8px;font-family:'Share Tech Mono',monospace;color:#2a4a2c}
+.prices-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.prices-scroll::-webkit-scrollbar{width:3px}
+.prices-scroll::-webkit-scrollbar-thumb{background:#1c2a1e;border-radius:2px}
+
+/* ── GROUP HEADER ── */
+.group-hdr{
+  padding:5px 12px;background:#080b09;
+  font-size:8px;font-family:'Share Tech Mono',monospace;
+  color:#2a4a2c;letter-spacing:2.5px;text-transform:uppercase;
+  border-top:1px solid #0f1611;border-bottom:1px solid #0f1611;
+  position:sticky;top:0;z-index:2;
+}
+
+/* ── PRICE ROW ── */
+.price-row{
+  display:flex;align-items:center;padding:8px 10px;
+  border-bottom:1px solid #0c100d;
+  cursor:pointer;transition:background .1s;gap:8px;
+}
+.price-row:hover{background:#0f1a10}
+.price-row.active{background:#0d1f0f;border-left:3px solid #2ecc71;padding-left:7px}
+.pr-ico{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:7px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:.2px;
+}
+.pr-info{flex:1;min-width:0}
+.pr-sym{font-size:13px;font-weight:700;color:#d0ddd2;letter-spacing:.3px;line-height:1.2}
+.pr-chg{font-size:9px;font-family:'Share Tech Mono',monospace;margin-top:2px}
+.pr-prices{text-align:right;flex-shrink:0;min-width:90px}
+.ba-row{display:flex;align-items:center;justify-content:flex-end;gap:0}
+.ba-label{font-size:7px;color:#2a4a2c;font-family:'Share Tech Mono',monospace;width:22px;text-align:right;padding-right:3px}
+.bid-val{font-family:'Share Tech Mono',monospace;font-size:12px;font-weight:700;color:#ef5350;min-width:65px;text-align:right}
+.ask-val{font-family:'Share Tech Mono',monospace;font-size:12px;font-weight:700;color:#2ecc71;min-width:65px;text-align:right}
+
+.up{color:#2ecc71}.dn{color:#ef5350}
+.arr-up{display:inline-block;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid #2ecc71;margin-left:3px;vertical-align:middle}
+.arr-dn{display:inline-block;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid #ef5350;margin-left:3px;vertical-align:middle}
+.flash-up{animation:fup .6s ease}
+.flash-dn{animation:fdn .6s ease}
+@keyframes fup{40%{background:rgba(46,204,113,.1)}}
+@keyframes fdn{40%{background:rgba(239,83,80,.1)}}
+
+/* ── STATUSBAR ── */
+.statusbar{
+  background:#080b09;border-top:2px solid #1c2a1e;
+  padding:4px 16px;display:flex;align-items:center;gap:10px;
+  flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:9px;color:#2a4a2c;
+}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sdot.g{background:#2ecc71;animation:blink 1.5s infinite}
+.sdot.y{background:#f39c12}
+.sdot.r{background:#e74c3c}
+.stxt{color:#3d6040}
+.ml{margin-left:auto}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TITLEBAR -->
+  <div class="titlebar">
+    <div class="logo">
+      <svg width="36" height="26" viewBox="0 0 40 28" fill="none">
+        <path d="M4 14C4 7,13 3,20 10C27 17,36 20,36 14C36 7,27 3,20 10C13 17,4 21,4 14Z" stroke="#2ecc71" stroke-width="2.2" fill="none"/>
+      </svg>
+      <div>
+        <div class="brand">Infinity ECN</div>
+        <div class="brand-sub">Electronic Communication Network</div>
+      </div>
+    </div>
+    <div class="tb-right">
+      <div class="sess" id="sessions"></div>
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="clock" id="clockEl">--:--:-- UTC</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- LEFT: CHART -->
+    <div class="left-panel">
+      <div class="chart-header">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span class="chart-sym" id="chartSym">EUR/USD</span>
+          <span class="chart-price" id="chartPrice">—</span>
+          <span class="chart-chg" id="chartChg"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#2a4a2c">
+            BID <span id="hdrBid" style="color:#ef5350;font-size:12px">—</span>
+            &nbsp;&nbsp;
+            ASK <span id="hdrAsk" style="color:#2ecc71;font-size:12px">—</span>
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chartWrap"></div>
+    </div>
+
+    <!-- RIGHT: PRICES -->
+    <div class="right-panel">
+      <div class="right-header">
+        <span class="right-title">&#9632; Prices</span>
+        <span class="update-time" id="updateTime">—</span>
+      </div>
+      <div class="prices-scroll" id="pricesScroll">
+        <div style="padding:20px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:#2a4a2c">
+          Loading prices…
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUSBAR -->
+  <div class="statusbar">
+    <div class="sdot y" id="sdot"></div>
+    <span class="stxt" id="statusTxt">Connecting…</span>
+    <span id="countdown"></span>
+    <span class="ml">TradingView Charts · Twelve Data Prices · Infinity ECN</span>
+  </div>
+
+</div>
+
+<script>
+const GROUPS = {
+  'Forex': [
+    {sym:'EUR/USD', td:'EUR/USD',  tv:'FX:EURUSD',         ic:'#1565c0', lb:'EU', d:5},
+    {sym:'GBP/USD', td:'GBP/USD',  tv:'FX:GBPUSD',         ic:'#6a1b9a', lb:'GB', d:5},
+    {sym:'USD/JPY', td:'USD/JPY',  tv:'FX:USDJPY',         ic:'#c62828', lb:'JP', d:3},
+    {sym:'USD/CHF', td:'USD/CHF',  tv:'FX:USDCHF',         ic:'#880e4f', lb:'CH', d:5},
+    {sym:'AUD/USD', td:'AUD/USD',  tv:'FX:AUDUSD',         ic:'#00695c', lb:'AU', d:5},
+    {sym:'USD/CAD', td:'USD/CAD',  tv:'FX:USDCAD',         ic:'#1a237e', lb:'CA', d:5},
+    {sym:'NZD/USD', td:'NZD/USD',  tv:'FX:NZDUSD',         ic:'#4a148c', lb:'NZ', d:5},
+    {sym:'EUR/GBP', td:'EUR/GBP',  tv:'FX:EURGBP',         ic:'#01579b', lb:'EG', d:5},
+    {sym:'EUR/JPY', td:'EUR/JPY',  tv:'FX:EURJPY',         ic:'#004d40', lb:'EJ', d:3},
+    {sym:'GBP/JPY', td:'GBP/JPY',  tv:'FX:GBPJPY',         ic:'#3e2723', lb:'GJ', d:3},
+  ],
+  'Metals': [
+    {sym:'XAU/USD', td:'XAU/USD',  tv:'TVC:GOLD',          ic:'#e65100', lb:'AU', d:2},
+    {sym:'XAG/USD', td:'XAG/USD',  tv:'TVC:SILVER',        ic:'#546e7a', lb:'AG', d:3},
+  ],
+  'Energy': [
+    {sym:'WTI Oil',    td:'WTI/USD',  tv:'TVC:USOIL',      ic:'#4e342e', lb:'WTI', d:2},
+    {sym:'Brent Oil',  td:'XBR/USD',  tv:'TVC:UKOIL',      ic:'#37474f', lb:'BRT', d:2},
+    {sym:'Nat. Gas',   td:'NGAS/USD', tv:'NYMEX:NG1!',     ic:'#1b5e20', lb:'GAS', d:3},
+  ],
+  'Crypto': [
+    {sym:'BTC/USD', td:'BTC/USD',  tv:'BINANCE:BTCUSDT',   ic:'#f57f17', lb:'BT', d:2},
+    {sym:'ETH/USD', td:'ETH/USD',  tv:'BINANCE:ETHUSDT',   ic:'#4527a0', lb:'ET', d:2},
+    {sym:'XRP/USD', td:'XRP/USD',  tv:'BINANCE:XRPUSDT',   ic:'#0277bd', lb:'XR', d:4},
+  ],
+  'Indices': [
+    {sym:'S&P 500', td:'SPX500:INDEX', tv:'FOREXCOM:SPXUSD',   ic:'#1a237e', lb:'SPX', d:2},
+    {sym:'NASDAQ',  td:'NDX:INDEX',    tv:'FOREXCOM:NSXUSD',   ic:'#1b5e20', lb:'NDX', d:2},
+    {sym:'Dow Jones',td:'DJI:INDEX',   tv:'FOREXCOM:DJI',      ic:'#4a148c', lb:'DJI', d:2},
+    {sym:'DAX 40',  td:'GDAXI:INDEX',  tv:'PEPPERSTONE:GER40', ic:'#b71c1c', lb:'DAX', d:2},
+  ],
+};
+
+const ALL = Object.values(GROUPS).flat();
+let liveData = {}, prevData = {};
+let activeSym = 'EUR/USD';
+let activeTv  = 'FX:EURUSD';
+let timerCD   = null;
+
+const fp = (v, d) => (v != null && v !== '' && !isNaN(v)) ? parseFloat(v).toFixed(d) : '—';
+
+function getInst(sym) { return ALL.find(i => i.sym === sym); }
+
+// ── FETCH ──
+async function fetchPrices() {
+  clearInterval(timerCD);
+  document.getElementById('sdot').className = 'sdot y';
+  document.getElementById('statusTxt').textContent = 'Updating…';
+  try {
+    const resp = await fetch('https://infinity-ecn-api.onrender.com/prices');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const raw = await resp.json();
+    if (raw.error) throw new Error(raw.error);
+
+    prevData = JSON.parse(JSON.stringify(liveData));
+
+    ALL.forEach(inst => {
+      const entry = raw[inst.td] || null;
+      if (!entry || entry.status === 'error') return;
+      const close  = parseFloat(entry.close  || 0);
+      const open   = parseFloat(entry.open   || close);
+      const high   = parseFloat(entry.high   || close);
+      const low    = parseFloat(entry.low    || close);
+      const pct    = parseFloat(entry.percent_change || ((close-open)/open*100));
+      // Estimate bid/ask from close (Twelve Data free doesn't give live bid/ask)
+      const spread = close * (inst.d >= 4 ? 0.00006 : 0.0003);
+      liveData[inst.sym] = {
+        close: fp(close, inst.d),
+        open:  fp(open,  inst.d),
+        high:  fp(high,  inst.d),
+        low:   fp(low,   inst.d),
+        bid:   fp(close - spread/2, inst.d),
+        ask:   fp(close + spread/2, inst.d),
+        pct:   pct.toFixed(2),
+      };
+    });
+
+    document.getElementById('sdot').className = 'sdot g';
+    document.getElementById('statusTxt').textContent = 'Live — Twelve Data';
+    document.getElementById('updateTime').textContent = new Date().toUTCString().slice(17,25) + ' UTC';
+    renderPrices();
+    updateChartHeader();
+    startCountdown(60);
+  } catch(e) {
+    document.getElementById('sdot').className = 'sdot r';
+    document.getElementById('statusTxt').textContent = 'Error: ' + e.message;
+    startCountdown(20);
+  }
+}
+
+function startCountdown(secs) {
+  let n = secs;
+  clearInterval(timerCD);
+  timerCD = setInterval(() => {
+    n--;
+    document.getElementById('countdown').textContent = '· refresh in ' + n + 's';
+    if (n <= 0) { clearInterval(timerCD); fetchPrices(); }
+  }, 1000);
+}
+
+// ── RENDER ──
+function renderPrices() {
+  const wrap = document.getElementById('pricesScroll');
+  wrap.innerHTML = Object.entries(GROUPS).map(([grp, items]) =>
+    `<div class="group-hdr">${grp}</div>` +
+    items.map(inst => {
+      const d  = liveData[inst.sym] || {};
+      const pv = prevData[inst.sym] || {};
+      const pct = d.pct ? parseFloat(d.pct) : 0;
+      const isUp = pct >= 0;
+      const changed = pv.bid && d.bid && d.bid !== pv.bid;
+      const flash = changed ? (parseFloat(d.bid) > parseFloat(pv.bid) ? ' flash-up' : ' flash-dn') : '';
+      return `<div class="price-row${inst.sym === activeSym ? ' active' : ''}${flash}" onclick="selectSym('${inst.sym}')">
+        <div class="pr-ico" style="background:${inst.ic}">${inst.lb}</div>
+        <div class="pr-info">
+          <div class="pr-sym">${inst.sym}</div>
+          <div class="pr-chg ${isUp?'up':'dn'}">${isUp?'+':''}${pct.toFixed(2)}%<span class="${isUp?'arr-up':'arr-dn'}"></span></div>
+        </div>
+        <div class="pr-prices">
+          <div class="ba-row">
+            <span class="ba-label">BID</span>
+            <span class="bid-val">${d.bid || '—'}</span>
+          </div>
+          <div class="ba-row">
+            <span class="ba-label">ASK</span>
+            <span class="ask-val">${d.ask || '—'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')
+  ).join('');
+}
+
+function updateChartHeader() {
+  const inst = getInst(activeSym);
+  const d = liveData[activeSym] || {};
+  const pct = d.pct ? parseFloat(d.pct) : 0;
+  const isUp = pct >= 0;
+  document.getElementById('chartSym').textContent   = activeSym;
+  document.getElementById('chartPrice').textContent = d.close || '—';
+  document.getElementById('chartChg').innerHTML =
+    `<span class="${isUp?'up':'dn'}">${isUp?'+':''}${pct.toFixed(2)}%</span>`;
+  document.getElementById('hdrBid').textContent = d.bid || '—';
+  document.getElementById('hdrAsk').textContent = d.ask || '—';
+}
+
+// ── SELECT SYM ──
+function selectSym(sym) {
+  const inst = getInst(sym);
+  if (!inst) return;
+  activeSym = sym;
+  activeTv  = inst.tv;
+  renderPrices();
+  updateChartHeader();
+  loadChart(inst.tv);
+}
+
+// ── LOAD CHART ──
+function loadChart(tv) {
+  const wrap = document.getElementById('chartWrap');
+  wrap.innerHTML = '';
+  const c = document.createElement('div');
+  c.className = 'tradingview-widget-container';
+  c.style.cssText = 'height:100%;width:100%';
+  const w = document.createElement('div');
+  w.className = 'tradingview-widget-container__widget';
+  w.style.cssText = 'height:100%;width:100%';
+  c.appendChild(w);
+  const s = document.createElement('script');
+  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  s.async = true;
+  s.innerHTML = JSON.stringify({
+    autosize: true, symbol: tv,
+    interval: 'D', timezone: 'Etc/UTC',
+    theme: 'dark', style: '1', locale: 'en',
+    backgroundColor: '#0c0e0d',
+    gridColor: 'rgba(28,42,30,0.8)',
+    hide_top_toolbar: false, hide_legend: false,
+    save_image: false, calendar: false,
+    support_host: 'https://www.tradingview.com',
+  });
+  c.appendChild(s);
+  wrap.appendChild(c);
+}
+
+// ── SESSIONS + CLOCK ──
+function updateSessions() {
+  const h = new Date().getUTCHours();
+  document.getElementById('sessions').innerHTML = [
+    {n:'LONDON',   o: h>=7  && h<16},
+    {n:'NEW YORK', o: h>=12 && h<21},
+    {n:'TOKYO',    o: h>=23 || h<8},
+    {n:'SYDNEY',   o: h>=22 || h<7},
+  ].map(s => `<div class="sess-item">
+    <div class="sess-name">${s.n}</div>
+    <div class="sess-dot ${s.o?'open':'closed'}">${s.o?'● OPEN':'○ CLOSED'}</div>
+  </div>`).join('');
+}
+function clock() {
+  document.getElementById('clockEl').textContent = new Date().toUTCString().slice(17,25) + ' UTC';
+  updateSessions();
+}
+
+// ── INIT ──
+loadChart(activeTv);
+fetchPrices();
+setInterval(clock, 1000);
+clock();
+</script>
+</body>
+</html>
